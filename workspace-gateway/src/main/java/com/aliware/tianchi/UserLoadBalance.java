@@ -9,6 +9,7 @@ import org.apache.dubbo.rpc.cluster.LoadBalance;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author daofeng.xjf
@@ -21,7 +22,11 @@ import java.util.concurrent.ThreadLocalRandom;
 public class UserLoadBalance implements LoadBalance {
 
     private int total = 16383;
-    private int num = 3;
+    private int num = 2;
+    //private AtomicInteger largeNum = new AtomicInteger(0);
+    //private AtomicInteger mediumNum = new AtomicInteger(0);
+   // private AtomicInteger smallNum = new AtomicInteger(0);
+
     @Override
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
         int large = CallbackListenerImpl.largeMemorySize;
@@ -34,26 +39,34 @@ public class UserLoadBalance implements LoadBalance {
         if(large==0) {
             //初始化值，客户端还未收到服务端内存数据。
             temp = total/num;
-            a = temp<<1;
-            b = a +(temp>>1);
+            a = temp;
+            b = a +(temp/3)*2;
         }else {
             //根据实时内存，分配虚拟槽
             temp = total/c;
             a =temp*large;
-            b = a + (temp*medium);
+            b = a + (temp*small);
 
         }
         //1.生成随机字符串key
         String key = (String)invocation.getArguments()[0];
         //2.获取key的hash值
-        int hash = getCrc(key.getBytes());
+        int hash = getCrc(key.getBytes())&total;
+        //int hash = ThreadLocalRandom.current().nextInt(total);
         int index = 0;
         if(hash<=a) {
-        }else if(hash>a&&hash<=b){
-            index = 1;
-        }else {
             index = 2;
+            //System.out.println("large:"+largeNum.incrementAndGet());
+        }else if(hash>a&&hash<=b){
+            //System.out.println("small:"+smallNum.incrementAndGet());
+        }else {
+            index = 1;
+            //System.out.println("medium:"+mediumNum.incrementAndGet());
+
         }
+       // System.out.println(key);
+        //System.out.println(hash);
+        //System.out.println(invoker1.getUrl()+","+invoker1.getInterface()+","+invoker1.getClass());
         return invokers.get(index);
     }
 

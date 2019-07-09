@@ -20,7 +20,8 @@ public class TestRequestLimiter implements RequestLimiter {
      */
     @Override
     public boolean tryAcquire(Request request, int activeTaskCount) {
-        return true;
+       //System.out.println("服务端对应线程池的活跃线程数:"+activeTaskCount);
+       return true;
     }
 
 }

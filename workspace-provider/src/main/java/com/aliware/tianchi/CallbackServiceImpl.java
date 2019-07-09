@@ -25,7 +25,8 @@ public class CallbackServiceImpl implements CallbackService {
                 if (!listeners.isEmpty()) {
                     for (Map.Entry<String, CallbackListener> entry : listeners.entrySet()) {
                         try {
-                            entry.getValue().receiveServerMsg(System.getProperty("quota") + " " + new Date().toString());
+                            //entry.getValue().receiveServerMsg(System.getProperty("quota") + " " + new Date().toString());
+                            entry.getValue().receiveServerMsg(System.getProperty("quota") + "," + (Runtime.getRuntime().totalMemory()>>20));
                         } catch (Throwable t1) {
                             listeners.remove(entry.getKey());
                         }

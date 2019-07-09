@@ -31,7 +31,7 @@ public class UserLoadBalance implements LoadBalance {
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
         int large = CallbackListenerImpl.largeMemorySize;
         int medium = CallbackListenerImpl.mediumMemorySize;
-        int small = CallbackListenerImpl.mediumMemorySize;
+        int small = CallbackListenerImpl.smallMemorySize;
         int a = 0;
         int b = 0;
         int c = large+medium+small;
@@ -40,7 +40,7 @@ public class UserLoadBalance implements LoadBalance {
             //初始化值，客户端还未收到服务端内存数据。
             temp = total/num;
             a = temp;
-            b = a +(temp/3)*2;
+            b = a +(temp/3);
         }else {
             //根据实时内存，分配虚拟槽
             temp = total/c;
@@ -64,6 +64,8 @@ public class UserLoadBalance implements LoadBalance {
             //System.out.println("medium:"+mediumNum.incrementAndGet());
 
         }
+        //System.out.println("large:"+large+",medium:"+medium+",small:"+small);
+        //System.out.println("a:"+a+",b:"+b);
        // System.out.println(key);
         //System.out.println(hash);
         //System.out.println(invoker1.getUrl()+","+invoker1.getInterface()+","+invoker1.getClass());

@@ -44,7 +44,7 @@ public class UserLoadBalance implements LoadBalance {
 
         }
         //1.生成随机字符串key
-        String key = UUID.randomUUID().toString();
+        String key = (String)invocation.getArguments()[0];
         //2.获取key的hash值
         int hash = getCrc(key.getBytes());
         int index = 0;

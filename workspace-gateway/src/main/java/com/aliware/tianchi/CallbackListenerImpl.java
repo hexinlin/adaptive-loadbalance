@@ -1,5 +1,6 @@
 package com.aliware.tianchi;
 
+import org.apache.dubbo.config.annotation.Service;
 import org.apache.dubbo.rpc.listener.CallbackListener;
 
 /**
@@ -10,6 +11,7 @@ import org.apache.dubbo.rpc.listener.CallbackListener;
  * 用户可以基于获取获取服务端的推送信息，与 CallbackService 搭配使用
  *
  */
+//@Service(timeout = 10000)
 public class CallbackListenerImpl implements CallbackListener {
 
     public static int smallMemorySize = 0;//单位M
@@ -25,7 +27,7 @@ public class CallbackListenerImpl implements CallbackListener {
         }else if("large".equals(msgs[0])) {
             largeMemorySize = Integer.parseInt(msgs[1]);
         }
-       // System.out.println("receive msg from server :" + msg);
+        //System.err.println("receive msg from server :" + msg);
     }
 
 }

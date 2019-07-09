@@ -1,5 +1,6 @@
 package com.aliware.tianchi;
 
+import org.apache.dubbo.config.annotation.Service;
 import org.apache.dubbo.rpc.listener.CallbackListener;
 import org.apache.dubbo.rpc.service.CallbackService;
 
@@ -16,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 可选接口
  * 用户可以基于此服务，实现服务端向客户端动态推送的功能
  */
+//@Service(timeout = 10000)
 public class CallbackServiceImpl implements CallbackService {
 
     public CallbackServiceImpl() {
@@ -26,9 +28,10 @@ public class CallbackServiceImpl implements CallbackService {
                     for (Map.Entry<String, CallbackListener> entry : listeners.entrySet()) {
                         try {
                             //entry.getValue().receiveServerMsg(System.getProperty("quota") + " " + new Date().toString());
-                            entry.getValue().receiveServerMsg(System.getProperty("quota") + "," + (Runtime.getRuntime().totalMemory()>>20));
+                            entry.getValue().receiveServerMsg(System.getProperty("quota") + "," + (Runtime.getRuntime().freeMemory()>>20));
                         } catch (Throwable t1) {
-                            listeners.remove(entry.getKey());
+                            //System.out.println("异常了"+t1.toString());
+                            //listeners.remove(entry.getKey());
                         }
                     }
                 }

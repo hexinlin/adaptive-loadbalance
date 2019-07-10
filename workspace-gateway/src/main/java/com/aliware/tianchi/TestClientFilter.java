@@ -21,8 +21,12 @@ public class TestClientFilter implements Filter {
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         try{
             Result result = invoker.invoke(invocation);
+            /*if(result!=null) {
+                System.out.println("result:"+(null==result.getException()?"":result.getException().toString())+","+result.getValue()+","+result.getAttachments().toString());
+            }*/
             return result;
         }catch (Exception e){
+            System.out.println("clientFilter异常:"+e);
             throw e;
         }
 

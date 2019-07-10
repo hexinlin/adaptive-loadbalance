@@ -23,9 +23,9 @@ public class UserLoadBalance implements LoadBalance {
 
     private int total = 16383;
     private int num = 2;
-    //private AtomicInteger largeNum = new AtomicInteger(0);
-    //private AtomicInteger mediumNum = new AtomicInteger(0);
-   // private AtomicInteger smallNum = new AtomicInteger(0);
+    private AtomicInteger largeNum = new AtomicInteger(0);
+    private AtomicInteger mediumNum = new AtomicInteger(0);
+   private AtomicInteger smallNum = new AtomicInteger(0);
 
     @Override
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
@@ -40,12 +40,12 @@ public class UserLoadBalance implements LoadBalance {
             //初始化值，客户端还未收到服务端内存数据。
             temp = total/num;
             a = temp;
-            b = a +(temp/3);
+            b = a +(temp/3)*2;
         }else {
             //根据实时内存，分配虚拟槽
             temp = total/c;
             a =temp*large;
-            b = a + (temp*small);
+            b = a + (temp*medium);
 
         }
         //1.生成随机字符串key
@@ -58,10 +58,11 @@ public class UserLoadBalance implements LoadBalance {
             index = 2;
             //System.out.println("large:"+largeNum.incrementAndGet());
         }else if(hash>a&&hash<=b){
-            //System.out.println("small:"+smallNum.incrementAndGet());
-        }else {
             index = 1;
             //System.out.println("medium:"+mediumNum.incrementAndGet());
+
+        }else {
+            //System.out.println("small:"+smallNum.incrementAndGet());
 
         }
         //System.out.println("large:"+large+",medium:"+medium+",small:"+small);

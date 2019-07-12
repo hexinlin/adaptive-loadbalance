@@ -52,20 +52,9 @@ public class UserLoadBalance implements LoadBalance {
     @Override
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
 
-       /* boolean flag = false;
-        ConcurrentHashMap invokerRates = TestClientFilter.invokerRates;
-        if(invokerRates.size()<3) {
-            flag = true;
 
-        }else {
-            //RTT速率已经生成控制请求速率
-            Set< Map.Entry<String,Long>> set = invokerRates.entrySet();
-            for(Map.Entry<String,Long> entry :set) {
-                System.out.println("速率：key:"+entry.getKey()+",val:"+entry.getValue());
-                serviceRate.put(entry.getKey(),1000000000/entry.getValue());
-            }
-        }
-*/
+        long teststart = System.nanoTime();
+
         int large = CallbackListenerImpl.largeMemorySize;
         int medium = CallbackListenerImpl.mediumMemorySize;
         int small = CallbackListenerImpl.smallMemorySize;
@@ -102,69 +91,7 @@ public class UserLoadBalance implements LoadBalance {
             //System.out.println("small:"+smallNum.incrementAndGet());
 
         }
-        /*if(flag) {
-            //还未获取到速率，直接请求
-            return invoker1;
-        }
 
-        String k = invoker1.getUrl().getPort()+"";
-        long start = System.nanoTime();
-        String realKey = k;
-        if(null==serviceNums.get(k)) {
-            System.out.println("-----1-----");
-            serviceNums.put(k,new ArrayList<>());
-            serviceNums.get(k).add(start);
-        }else {
-            System.out.println("-----2-----");
-            if(start-serviceNums.get(k).get(0)<=timeUnit) {
-                //小于单位时间，计算是否超量
-                int size = serviceNums.get(k).size();
-                System.out.println("size:"+size+",serviceRate:"+serviceRate.get(k));
-                if(size<serviceRate.get(k)) {
-                    //成功请求，
-                    serviceNums.get(k).add(start);
-                }else {
-                    realKey = null;
-                    //超量了，寻找新途径，查看另外的invoker是否还有余量
-                    Set<Map.Entry<String,List<Long>>> serviceNumsSet = serviceNums.entrySet();
-
-                    for(Map.Entry<String,List<Long>> entry : serviceNumsSet) {
-                        if(entry.getKey().equals(k)) {
-                            //自身的容量已满，跳过
-                            continue;
-                        }else {
-                            if(entry.getValue().size()<serviceRate.get(entry.getKey())) {
-                                realKey = entry.getKey();
-                                serviceNums.get(realKey).add(start);
-                            }
-                        }
-                    }
-
-                }
-            }else {
-                System.out.println("-----3-----");
-                //大于时间段，清空列表，重启计数
-                serviceNums.get(k).clear();
-                serviceNums.get(k).add(start);
-            }
-        }
-
-        if(null==realKey) {
-            //如果容量都满了，直接驳回
-            System.out.println("容量已满 ，无法请求成功");
-            return null;
-        }else if(realKey.equals(k)) {
-            System.out.println("容量未满，直接请求成功");
-            return invoker1;
-        }else {
-            for(Invoker invoker:invokers) {
-                if(invoker.getUrl().getPort()==Integer.parseInt(realKey)) {
-                    System.out.println("容量已满，更换invoker请求成功");
-                    return invoker;
-                }
-            }
-            return null;
-        }*/
 
        long start = System.nanoTime();
        Invoker invoker1 = invokers.get(index);
@@ -182,10 +109,8 @@ public class UserLoadBalance implements LoadBalance {
                    queue.add(start);
                }else {
                    queue.add(start);
-                   while(start-queue.peek()>timeDuration) {
-                       queue.poll();
-                   }
-                   startMap.put(port,queue.peek());
+
+                   startMap.put(port,queue.poll());
                }
            }
            System.out.println("port:"+port+",速率还未计算出来,queueSize:"+queue.size());
@@ -206,11 +131,8 @@ public class UserLoadBalance implements LoadBalance {
                    System.out.println("当前队列长度为："+queueSize+",start-queue.peek()>timeDuration,start:"+start+",queue-head:"+startMap.get(port)+",通过");
                    finalPort = port;
                    queue.add(start);
-                   while(start-queue.peek()>timeDuration) {
-                       queue.poll();
-                   }
-                   startMap.put(port,queue.peek());
-                   //startMap.put(port,queue.poll());
+
+                   startMap.put(port,queue.poll());
                }else {
                    //被限流，寻找其他路径
                    //通过
@@ -236,11 +158,8 @@ public class UserLoadBalance implements LoadBalance {
                                    //通过
                                    finalPort = kk;
                                    kkqueue.add(start);
-                                   while(start-kkqueue.peek()>timeDuration) {
-                                       kkqueue.poll();
-                                   }
-                                   startMap.put(finalPort,kkqueue.peek());
-                                  // startMap.put(finalPort,kkqueue.poll());
+
+                                  startMap.put(finalPort,kkqueue.poll());
                                }
                            }
                        }
@@ -274,24 +193,7 @@ public class UserLoadBalance implements LoadBalance {
        }
 
 
-
-
-       /* ConcurrentLinkedQueue<Long> list = serviceSize.get(port);
-       if(serviceSize.get(port).size()==0) {
-           serviceSize.get(port).add(start);
-       } else {
-           Long[] array = new Long[list.size()];
-           list.toArray(array);
-           if(start-array[array.length-1]>=timeDuration) {
-               //大于时间跨度，清空list，从新计数
-               list.clear();
-               list.add(start);
-           }else {
-               list.add(start);
-           }
-
-
-       }*/
+        System.out.println((System.nanoTime()-teststart)/1000000+"ms");
         return invoker1;
     }
 

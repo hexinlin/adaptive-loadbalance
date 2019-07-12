@@ -83,7 +83,6 @@ public class TestClientFilter implements Filter {
 
     @Override
     public Result onResponse(Result result, Invoker<?> invoker, Invocation invocation) {
-        //System.out.println("result.value1:"+result.getValue()+","+result.hasException()+","+result.getAttachments());
         if(result.hasException()) {
            if(!(result.getException() instanceof TimeoutException)) {
                String str = result.getException().toString();
@@ -94,45 +93,11 @@ public class TestClientFilter implements Filter {
                    int port = Integer.parseInt(temps[temps.length-1].substring(0,temps[temps.length-1].length()-1));
                    System.out.println("EXHAUSTED:"+port);
                    UserLoadBalance.serviceRates.put(port,UserLoadBalance.currentRate.get(port).size());
-                  /* ConcurrentLinkedQueue<Long> list = UserLoadBalance.serviceSize.get(port);
-                   System.out.println("port:"+port+",list.size:"+list.size());
-                   if(list.size()>100&&UserLoadBalance.serviceRates.get(port)==null) {
-                       //数量够大才能作为统计数据
-                       Long[] datas = new Long[list.size()];
-                       list.toArray(datas);
-                       //计算最大并发数
-                       long end = datas[list.size()-1];
-                       long start = datas[0];
-                       System.out.println("end:"+end+",start:"+start);
-                       Double duration = Double.parseDouble((end-start)+"")/1000000000;
-                       Double maxCon = list.size()/duration;
-                       UserLoadBalance.serviceRates.put(port,maxCon.intValue());
-                       UserLoadBalance.serviceSize.get(port).clear();
-                       System.out.println("port:"+port+",max:"+maxCon.intValue());
-                   }*/
+
 
                }
            }
-           /* TimeoutException exception = (TimeoutException)result.getException();
-            System.out.println(":::"+result.getException().toString());
-            int port = exception.getRemoteAddress().getPort();
-                ConcurrentLinkedQueue<Long> list = UserLoadBalance.serviceSize.get(port);
-                System.out.println("port:"+port+",list..size:"+list.size());
-                if(list.size()>10&&UserLoadBalance.serviceRates.get(port)==null) {
-                    //数量够大才能作为统计数据
-                    Long[] datas = new Long[list.size()];
-                    list.toArray(datas);
-                    //计算最大并发数
-                    long end = datas[list.size()-1];
-                    long start = datas[0];
-                    System.out.println("end:"+end+",start:"+start);
-                    Double duration = Double.parseDouble((end-start)+"")/1000000000;
-                    Double maxCon = list.size()/duration;
-                    UserLoadBalance.serviceRates.put(port,maxCon.intValue());
-                    UserLoadBalance.serviceSize.get(port).clear();
-                    System.out.println("port:"+port+",max:"+maxCon.intValue());
-                }
-*/
+
 
         }
         return result;

@@ -29,12 +29,12 @@ public class UserLoadBalance implements LoadBalance {
 
     private long timeDuration = 1000000000;//1000ms
 
-    public static volatile ConcurrentHashMap<Integer,ConcurrentLinkedQueue<Long>> currentRate = null;//计算当前速率，1秒钟内请请求个数
+    public static volatile HashMap<Integer,ConcurrentLinkedQueue<Long>> currentRate = null;//计算当前速率，1秒钟内请请求个数
 
     private static volatile ConcurrentHashMap<Integer,Long> startMap = null;
     static {
 
-        currentRate = new ConcurrentHashMap<>();
+        currentRate = new HashMap<>();
         currentRate.put(20870,new ConcurrentLinkedQueue <>());
         currentRate.put(20880,new ConcurrentLinkedQueue <>());
         currentRate.put(20890,new ConcurrentLinkedQueue <>());
@@ -51,7 +51,6 @@ public class UserLoadBalance implements LoadBalance {
 
     @Override
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
-
 
         long teststart = System.nanoTime();
 
@@ -93,107 +92,96 @@ public class UserLoadBalance implements LoadBalance {
         }
 
 
-       long start = System.nanoTime();
-       Invoker invoker1 = invokers.get(index);
-       int port = invoker1.getUrl().getPort();
-       Integer finalPort = null;
+        long start = System.nanoTime();
+        Invoker invoker1 = invokers.get(index);
+        int port = invoker1.getUrl().getPort();
+        Integer finalPort = null;
 
-       if(serviceRates.get(port)==null) {
-           finalPort = port;
-           ConcurrentLinkedQueue<Long> queue =  currentRate.get(port);
-           if(startMap.get(port)==0) {
-               queue.add(start);
-               startMap.put(port,start);
-           }else {
-               if(start-startMap.get(port)<=timeDuration) {
-                   queue.add(start);
-               }else {
-                   queue.add(start);
+        if(serviceRates.get(port)==null) {
+            finalPort = port;
+            ConcurrentLinkedQueue<Long> queue =  currentRate.get(port);
+            if(startMap.get(port)==0) {
+                queue.add(start);
+                startMap.put(port,start);
+            }else {
+                if(start-startMap.get(port)<=timeDuration) {
+                    queue.add(start);
+                }else {
+                    queue.add(start);
 
-                   startMap.put(port,queue.poll());
-               }
-           }
-           System.out.println("port:"+port+",速率还未计算出来,queueSize:"+queue.size());
-       }else {
-           int portMax = serviceRates.get(port);
-           System.out.println("port:"+port+"速率为："+portMax+"/s");
-           //有速率需要根据情况控制流速
-           ConcurrentLinkedQueue<Long> queue =  currentRate.get(port);
-           int queueSize = queue.size();
-           if(queueSize<portMax) {
-               //通过
-               finalPort = port;
-               queue.add(start);
-               System.out.println("当前队列长度为："+queueSize+",通过");
-           }else {
-               if(start-startMap.get(port)>timeDuration) {
-                   //通过
-                   System.out.println("当前队列长度为："+queueSize+",start-queue.peek()>timeDuration,start:"+start+",queue-head:"+startMap.get(port)+",通过");
-                   finalPort = port;
-                   queue.add(start);
+                    startMap.put(port,queue.poll());
+                }
+            }
 
-                   startMap.put(port,queue.poll());
-               }else {
-                   //被限流，寻找其他路径
-                   //通过
-                   System.out.println("当前队列长度为："+queueSize+",start-queue.peek()<timeDuration,start:"+start+",queue-head:"+startMap.get(port)+",寻找新途径");
-                   Enumeration<Integer> enums  = currentRate.keys();
-                   Integer kk = null;
+        }else {
+            //int portMax = serviceRates.get(port);
+            //System.out.println("port:"+port+"速率为："+portMax+"/s");
+            //有速率需要根据情况控制流速
+            ConcurrentLinkedQueue<Long> queue =  currentRate.get(port);
+            {
+                if(start-startMap.get(port)>timeDuration) {
+                    //通过
+                    System.out.println("start-queue.peek()>timeDuration,start:"+start+",queue-head:"+startMap.get(port)+",通过");
+                    finalPort = port;
+                    queue.add(start);
+                    startMap.put(port,queue.poll());
+                }else {
+                    //被限流，寻找其他路径
+                    //通过
+                    System.out.println("start-queue.peek()<timeDuration,start:"+start+",queue-head:"+startMap.get(port)+",寻找新途径");
+                    Set<Integer> enums  = currentRate.keySet();
+                    Iterator<Integer> itr = enums.iterator();
+                    Integer kk = null;
 
-                   while(enums.hasMoreElements()) {
-                       if(null!=finalPort) {
-                           break;
-                       }
-                       kk = enums.nextElement();
-                       if(kk==port) {
-                           continue;
-                       }else {
-                           ConcurrentLinkedQueue<Long> kkqueue =  currentRate.get(kk);
-                           if(null==serviceRates.get(kk)||kkqueue.size()<serviceRates.get(kk)) {
-                               //通过
-                               finalPort = kk;
-                               kkqueue.add(start);
-                           }else {
-                               if(start-startMap.get(port)>timeDuration) {
-                                   //通过
-                                   finalPort = kk;
-                                   kkqueue.add(start);
+                    while(itr.hasNext()) {
+                        if(null!=finalPort) {
+                            break;
+                        }
+                        kk = itr.next();
+                        if(kk==port) {
+                            continue;
+                        }else {
+                            ConcurrentLinkedQueue<Long> kkqueue =  currentRate.get(kk);
+                            if(null==serviceRates.get(kk)) {
+                                //通过
+                                finalPort = kk;
+                                kkqueue.add(start);
+                            }else {
+                                if(start-startMap.get(port)>timeDuration) {
+                                    //通过
+                                    finalPort = kk;
+                                    kkqueue.add(start);
 
-                                  startMap.put(finalPort,kkqueue.poll());
-                               }
-                           }
-                       }
-                   }
-               }
-           }
+                                    startMap.put(finalPort,kkqueue.poll());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
-       }
+        }
 
-       if(port!=finalPort) {
-           System.out.println("port："+port+"切换为："+finalPort);
-           System.out.println("port:"+finalPort+",队列长度为："+currentRate.get(finalPort).size());
-       }
+        if(port!=finalPort) {
+            System.out.println("port："+port+"切换为："+finalPort);
+        }
 
-       if(finalPort==null) {
-           //拒绝请求
-           System.out.println("拒绝请求");
-           Enumeration<Integer> ee = currentRate.keys();
-           int pp ;
-           while(ee.hasMoreElements()) {
-               pp = ee.nextElement();
-               System.out.println("port:"+port+",num:"+currentRate.get(pp).size());
-           }
-           return null;
-       }
-       for(Invoker invoker:invokers) {
-           if(invoker.getUrl().getPort()==finalPort) {
-               port = finalPort;
-               invoker1 = invoker;
-           }
-       }
+        if(finalPort==null) {
+            //拒绝请求
+            System.out.println("拒绝请求");
+
+            return null;
+        }
+        for(Invoker invoker:invokers) {
+            if(invoker.getUrl().getPort()==finalPort) {
+                port = finalPort;
+                invoker1 = invoker;
+            }
+        }
 
 
         System.out.println((System.nanoTime()-teststart)/1000000+"ms");
+
         return invoker1;
     }
 

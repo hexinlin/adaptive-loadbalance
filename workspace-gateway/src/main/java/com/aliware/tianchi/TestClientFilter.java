@@ -88,12 +88,12 @@ public class TestClientFilter implements Filter {
                String str = result.getException().toString();
                System.out.println("---"+str);
                //:20890!
-               if(str.indexOf("EXHAUSTED")>-1) {
-                   String[] temps = str.split(":");
-                   int port = Integer.parseInt(temps[temps.length-1].substring(0,temps[temps.length-1].length()-1));
+               String[] temps = str.split(":");
+               int port = Integer.parseInt(temps[temps.length-1].substring(0,temps[temps.length-1].length()-1));
+               if(str.indexOf("EXHAUSTED")>-1&&UserLoadBalance.serviceRates.get(port)==null) {
                    System.out.println("EXHAUSTED:"+port);
-                   UserLoadBalance.serviceRates.put(port,UserLoadBalance.currentRate.get(port).size());
-
+                   //UserLoadBalance.serviceRates.put(port,UserLoadBalance.currentRate.get(port).size());
+                   UserLoadBalance.serviceRates.put(port,1);
 
                }
            }

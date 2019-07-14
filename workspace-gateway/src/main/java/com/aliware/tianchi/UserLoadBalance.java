@@ -109,7 +109,6 @@ public class UserLoadBalance implements LoadBalance {
                 }else {
                     queue.add(start);
                     //startMap.put(port,queue.poll());
-                    executorService.execute(new Task(finalPort));
                 }
             }
 
@@ -123,7 +122,6 @@ public class UserLoadBalance implements LoadBalance {
                     finalPort = port;
                     queue.add(start);
                     //startMap.put(port,queue.poll());
-                    executorService.execute(new Task(finalPort));
                 }else {
                     //被限流，寻找其他路径
                     //通过
@@ -152,7 +150,6 @@ public class UserLoadBalance implements LoadBalance {
                                     kkqueue.add(start);
 
                                     //startMap.put(finalPort,kkqueue.poll());
-                                    executorService.execute(new Task(finalPort));
 
                                 }
                             }

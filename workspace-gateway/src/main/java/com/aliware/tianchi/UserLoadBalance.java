@@ -7,9 +7,7 @@ import org.apache.dubbo.rpc.RpcException;
 import org.apache.dubbo.rpc.cluster.LoadBalance;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -32,6 +30,8 @@ public class UserLoadBalance implements LoadBalance {
     public static volatile HashMap<Integer,ConcurrentLinkedQueue<Long>> currentRate = null;//计算当前速率，1秒钟内请请求个数
 
     private static volatile ConcurrentHashMap<Integer,Long> startMap = null;
+
+    private static ExecutorService executorService = Executors.newSingleThreadExecutor();
     static {
 
         currentRate = new HashMap<>();
@@ -97,7 +97,89 @@ public class UserLoadBalance implements LoadBalance {
         int port = invoker1.getUrl().getPort();
         Integer finalPort = null;
 
-        currentRate.get(port).add(start);
+        if(serviceRates.get(port)==null) {
+            finalPort = port;
+            ConcurrentLinkedQueue<Long> queue =  currentRate.get(port);
+            if(startMap.get(port)==0) {
+                queue.add(start);
+                startMap.put(port,start);
+            }else {
+                if(start-startMap.get(port)<=timeDuration) {
+                    queue.add(start);
+                }else {
+                    queue.add(start);
+                    //startMap.put(port,queue.poll());
+                    executorService.execute(new Task(finalPort));
+                }
+            }
+
+        }else {
+            //有速率需要根据情况控制流速
+            ConcurrentLinkedQueue<Long> queue =  currentRate.get(port);
+            {
+                if(start-startMap.get(port)>timeDuration) {
+                    //通过
+                    System.out.println("start-queue.peek()>timeDuration,start:"+start+",queue-head:"+startMap.get(port)+",通过");
+                    finalPort = port;
+                    queue.add(start);
+                    //startMap.put(port,queue.poll());
+                    executorService.execute(new Task(finalPort));
+                }else {
+                    //被限流，寻找其他路径
+                    //通过
+                    System.out.println("start-queue.peek()<timeDuration,start:"+start+",queue-head:"+startMap.get(port)+",寻找新途径");
+                    Set<Integer> enums  = currentRate.keySet();
+                    Iterator<Integer> itr = enums.iterator();
+                    Integer kk = null;
+
+                    while(itr.hasNext()) {
+                        if(null!=finalPort) {
+                            break;
+                        }
+                        kk = itr.next();
+                        if(kk==port) {
+                            continue;
+                        }else {
+                            ConcurrentLinkedQueue<Long> kkqueue =  currentRate.get(kk);
+                            if(null==serviceRates.get(kk)) {
+                                //通过
+                                finalPort = kk;
+                                kkqueue.add(start);
+                            }else {
+                                if(start-startMap.get(port)>timeDuration) {
+                                    //通过
+                                    finalPort = kk;
+                                    kkqueue.add(start);
+
+                                    //startMap.put(finalPort,kkqueue.poll());
+                                    executorService.execute(new Task(finalPort));
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        if(port!=finalPort) {
+            System.out.println("port："+port+"切换为："+finalPort);
+        }
+
+        if(finalPort==null) {
+            //拒绝请求
+            System.out.println("拒绝请求");
+
+            return null;
+        }
+        for(Invoker invoker:invokers) {
+            if(invoker.getUrl().getPort()==finalPort) {
+                port = finalPort;
+                invoker1 = invoker;
+            }
+        }
+
 
         System.out.println((System.nanoTime()-teststart)/1000000+"ms");
 
@@ -123,5 +205,17 @@ public class UserLoadBalance implements LoadBalance {
     }
 
 
+    class Task implements Runnable {
+
+        int port;
+
+        Task(int port) {
+            this.port = port;
+        }
+
+        public void run() {
+            startMap.put(port,currentRate.get(port).poll());
+        }
+    }
 
 }

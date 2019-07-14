@@ -27,8 +27,8 @@ public class CallbackServiceImpl implements CallbackService {
                 if (!listeners.isEmpty()) {
                     for (Map.Entry<String, CallbackListener> entry : listeners.entrySet()) {
                         try {
-                            //entry.getValue().receiveServerMsg(System.getProperty("quota") + " " + new Date().toString());
-                            entry.getValue().receiveServerMsg(System.getProperty("quota") + "," + (Runtime.getRuntime().freeMemory()>>20));
+                            entry.getValue().receiveServerMsg(System.getProperty("quota") + " " + new Date().toString());
+                            //entry.getValue().receiveServerMsg(System.getProperty("quota") + "," + (Runtime.getRuntime().freeMemory()>>20));
                         } catch (Throwable t1) {
                             //System.out.println("异常了"+t1.toString());
                             //listeners.remove(entry.getKey());
@@ -36,7 +36,7 @@ public class CallbackServiceImpl implements CallbackService {
                     }
                 }
             }
-        }, 0, 5000);
+        }, 0, 1000);
     }
 
     private Timer timer = new Timer();

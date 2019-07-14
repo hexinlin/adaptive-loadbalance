@@ -29,20 +29,40 @@ public class UserLoadBalance implements LoadBalance {
 
     public static volatile HashMap<Integer,ConcurrentLinkedQueue<Long>> currentRate = null;//计算当前速率，1秒钟内请请求个数
 
-    private static volatile ConcurrentHashMap<Integer,Long> startMap = null;
+    private static volatile HashMap<Integer,Long> startMap = null;
 
     private static ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    private static HashMap<Integer,Integer> maxCon = null;//各个服务的最大并发数。1秒钟
+    public static HashMap<Integer,AtomicInteger> realCon = null;//各个服务的最近一秒钟的并发数
+
     static {
+
 
         currentRate = new HashMap<>();
         currentRate.put(20870,new ConcurrentLinkedQueue <>());
         currentRate.put(20880,new ConcurrentLinkedQueue <>());
         currentRate.put(20890,new ConcurrentLinkedQueue <>());
 
-        startMap = new ConcurrentHashMap<>();
+        startMap = new HashMap<>();
         startMap.put(20870,0l);
         startMap.put(20880,0l);
         startMap.put(20890,0l);
+
+
+        maxCon = new HashMap<>();
+        maxCon.put(20880,4000);
+        maxCon.put(20870,9000);
+        maxCon.put(20890,13000);
+
+        /*maxCon.put(20880,307);
+        maxCon.put(20870,692);
+        maxCon.put(20890,1000);*/
+
+        realCon = new HashMap<>();
+        realCon.put(20880,new AtomicInteger(0));
+        realCon.put(20870,new AtomicInteger(0));
+        realCon.put(20890,new AtomicInteger(0));
 
        /* serviceRates.put(20880,200);
         serviceRates.put(20870,450);
@@ -92,95 +112,35 @@ public class UserLoadBalance implements LoadBalance {
         }
 
 
-        long start = System.nanoTime();
-        Invoker invoker1 = invokers.get(index);
-        int port = invoker1.getUrl().getPort();
-        Integer finalPort = null;
-
-        if(serviceRates.get(port)==null) {
-            finalPort = port;
-            ConcurrentLinkedQueue<Long> queue =  currentRate.get(port);
-            if(startMap.get(port)==0) {
-                queue.add(start);
-                startMap.put(port,start);
-            }else {
-                if(start-startMap.get(port)<=timeDuration) {
-                    queue.add(start);
-                }else {
-                    queue.add(start);
-                    //startMap.put(port,queue.poll());
-                }
-            }
-
-        }else {
-            //有速率需要根据情况控制流速
-            ConcurrentLinkedQueue<Long> queue =  currentRate.get(port);
-            {
-                if(start-startMap.get(port)>timeDuration) {
-                    //通过
-                    System.out.println("start-queue.peek()>timeDuration,start:"+start+",queue-head:"+startMap.get(port)+",通过");
-                    finalPort = port;
-                    queue.add(start);
-                    //startMap.put(port,queue.poll());
-                }else {
-                    //被限流，寻找其他路径
-                    //通过
-                    System.out.println("start-queue.peek()<timeDuration,start:"+start+",queue-head:"+startMap.get(port)+",寻找新途径");
-                    Set<Integer> enums  = currentRate.keySet();
-                    Iterator<Integer> itr = enums.iterator();
-                    Integer kk = null;
-
-                    while(itr.hasNext()) {
-                        if(null!=finalPort) {
-                            break;
-                        }
-                        kk = itr.next();
-                        if(kk==port) {
-                            continue;
-                        }else {
-                            ConcurrentLinkedQueue<Long> kkqueue =  currentRate.get(kk);
-                            if(null==serviceRates.get(kk)) {
-                                //通过
-                                finalPort = kk;
-                                kkqueue.add(start);
-                            }else {
-                                if(start-startMap.get(port)>timeDuration) {
-                                    //通过
-                                    finalPort = kk;
-                                    kkqueue.add(start);
-
-                                    //startMap.put(finalPort,kkqueue.poll());
-
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-        }
-
-        if(port!=finalPort) {
-            System.out.println("port："+port+"切换为："+finalPort);
-        }
-
-        if(finalPort==null) {
-            //拒绝请求
-            System.out.println("拒绝请求");
-
-            return null;
-        }
-        for(Invoker invoker:invokers) {
-            if(invoker.getUrl().getPort()==finalPort) {
-                port = finalPort;
-                invoker1 = invoker;
-            }
-        }
-
-
-        System.out.println((System.nanoTime()-teststart)/1000000+"ms");
-
-        return invoker1;
+       Invoker invoker1 = invokers.get(index);
+       int port = invoker1.getUrl().getPort();
+       int[] array = new int[]{0,1,2};
+       Integer finalPort = null;
+       if(realCon.get(port).incrementAndGet()<=maxCon.get(port)) {
+           //通过，直接请求
+           finalPort = port;
+           System.out.println("小于maxCon，直接请求:"+port);
+       }else {
+           System.out.println("寻找新途径");
+           for(int i:array) {
+               if(i==index) {
+                   continue;
+               }
+               invoker1 = invokers.get(i);
+               port = invoker1.getUrl().getPort();
+               if(realCon.get(port).incrementAndGet()<=maxCon.get(port)) {
+                   finalPort = port;
+                   System.out.println("寻找到新途径:"+port);
+                   break;
+               }
+           }
+       }
+       if(null!=finalPort) {
+           return invoker1;
+       }else {
+           System.out.println("超出最大速率，拒绝请求");
+           return null;
+       }
     }
 
 

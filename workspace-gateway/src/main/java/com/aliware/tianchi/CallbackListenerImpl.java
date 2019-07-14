@@ -3,6 +3,10 @@ package com.aliware.tianchi;
 import org.apache.dubbo.config.annotation.Service;
 import org.apache.dubbo.rpc.listener.CallbackListener;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * @author daofeng.xjf
  *
@@ -26,6 +30,11 @@ public class CallbackListenerImpl implements CallbackListener {
             mediumMemorySize = Integer.parseInt(msgs[1]);
         }else if("large".equals(msgs[0])) {
             largeMemorySize = Integer.parseInt(msgs[1]);
+        }
+        System.err.println("receive msg from server :" + msg);
+        Set<Map.Entry<Integer,AtomicInteger>> set = UserLoadBalance.realCon.entrySet();
+        for(Map.Entry<Integer,AtomicInteger> entry:set) {
+            entry.getValue().set(0);
         }
         //System.err.println("receive msg from server :" + msg);
     }

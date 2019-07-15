@@ -90,14 +90,20 @@ public class TestClientFilter implements Filter {
                //:20890!
                String[] temps = str.split(":");
                int port = Integer.parseInt(temps[temps.length-1].substring(0,temps[temps.length-1].length()-1));
-               if(str.indexOf("EXHAUSTED")>-1&&UserLoadBalance.serviceRates.get(port)==null) {
+               if(str.indexOf("EXHAUSTED")>-1) {
                    System.out.println("EXHAUSTED:"+port);
-                   //UserLoadBalance.serviceRates.put(port,UserLoadBalance.currentRate.get(port).size());
-                   UserLoadBalance.serviceRates.put(port,1);
+                   UserLoadBalance.serviceStateMap.put(port,(byte)0);
 
                }
            }
 
+
+        }else {
+            //解锁
+            if(UserLoadBalance.downMaps.get((String)invocation.getArguments()[0])!=null) {
+                UserLoadBalance.serviceStateMap.put(invocation.getInvoker().getUrl().getPort(),(byte)1);
+                System.out.println("解除宕机状态");
+            }
 
         }
         return result;

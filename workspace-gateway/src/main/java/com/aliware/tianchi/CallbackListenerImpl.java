@@ -31,7 +31,7 @@ public class CallbackListenerImpl implements CallbackListener {
         }else if("large".equals(msgs[0])) {
             largeMemorySize = Integer.parseInt(msgs[1]);
         }*/
-        System.err.println("receive msg from server :" + msg);
+      //  System.err.println("receive msg from server :" + msg);
         Set<Map.Entry<Integer,AtomicInteger>> set = UserLoadBalance.realCon.entrySet();
         for(Map.Entry<Integer,AtomicInteger> entry:set) {
             entry.getValue().set(0);

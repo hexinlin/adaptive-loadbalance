@@ -37,11 +37,19 @@ public class UserLoadBalance implements LoadBalance {
     public static HashMap<Integer,AtomicInteger> realCon = null;//各个服务的最近一秒钟的并发数
 
 
-    private static int large = CallbackListenerImpl.largeMemorySize;
-    private static int medium = CallbackListenerImpl.mediumMemorySize;
-    private static int small = CallbackListenerImpl.smallMemorySize;
-    private static int a = 0;
-    private static int b = 0;
+    private Integer[] indexs = new Integer[]{0,0,0,0,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2};
+    private static Integer[] indexs1 = new Integer[]{0,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2};
+    private static Integer[] indexs2= new Integer[]{0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2};
+    private static Integer[] indexs3= new Integer[]{0,0,0,0,1,1,1,1,1,1,1,1,1,2};
+    private static Integer[] indexs4= new Integer[]{0,1,2,2,2,2,2,2,2,2,2,2,2,2,2};
+    private static Integer[] indexs5= new Integer[]{0,1,1,1,1,1,1,1,1,1,2};
+    private static Integer[] indexs6= new Integer[]{0,0,0,0,1,2};
+
+    private static HashMap<Integer,Integer[]> indexMap = new HashMap<>();
+    public static volatile HashMap<Integer,Byte> serviceStateMap = new HashMap<>();
+
+    public static volatile ConcurrentHashMap<String,Byte> downMaps = new ConcurrentHashMap<>();
+
     static {
 
 
@@ -61,9 +69,9 @@ public class UserLoadBalance implements LoadBalance {
         maxCon.put(20870,6230);
         maxCon.put(20890,9000);
 
-        /*maxCon.put(20880,307);
-        maxCon.put(20870,692);
-        maxCon.put(20890,1000);*/
+        maxCon.put(20880,260);
+        maxCon.put(20870,600);
+        maxCon.put(20890,840);
 
         realCon = new HashMap<>();
         realCon.put(20880,new AtomicInteger(0));
@@ -72,20 +80,12 @@ public class UserLoadBalance implements LoadBalance {
 
 
 
-        int c = large+medium+small;
-        int temp = 0;
-        if(large==0) {
-            //初始化值，客户端还未收到服务端内存数据。
-            temp = total/num;
-            a = temp;
-            b = a +(temp/3)*2;
-        }else {
-            //根据实时内存，分配虚拟槽
-            temp = total/c;
-            a =temp*large;
-            b = a + (temp*medium);
 
-        }
+
+        serviceStateMap.put(20880,(byte)1);
+        serviceStateMap.put(20870,(byte)1);
+        serviceStateMap.put(20890,(byte)1);
+
 
        /* serviceRates.put(20880,200);
         serviceRates.put(20870,450);
@@ -94,27 +94,38 @@ public class UserLoadBalance implements LoadBalance {
 
     @Override
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
-        //1.生成随机字符串key
-        String key = (String)invocation.getArguments()[0];
-        //2.获取key的hash值
-        int hash = getCrc(key.getBytes())&total;
-        //int hash = ThreadLocalRandom.current().nextInt(total);
-        int index = 0;
-        if(hash<=a) {
-            index = 2;
-            //System.out.println("large:"+largeNum.incrementAndGet());
-        }else if(hash>a&&hash<=b){
-            index = 1;
-            //System.out.println("medium:"+mediumNum.incrementAndGet());
-
-        }else {
-            //System.out.println("small:"+smallNum.incrementAndGet());
-
+       Integer[] tempIndexs = null;
+        if(serviceStateMap.get(20880)==1&&serviceStateMap.get(20870)==1&&serviceStateMap.get(20890)==1) {
+            tempIndexs = indexs;
+        }else if(serviceStateMap.get(20880)==0&&serviceStateMap.get(20870)==1&&serviceStateMap.get(20890)==1) {
+            tempIndexs = indexs1;
+        }else if(serviceStateMap.get(20880)==1&&serviceStateMap.get(20870)==0&&serviceStateMap.get(20890)==1) {
+            tempIndexs = indexs2;
+        }else if(serviceStateMap.get(20880)==1&&serviceStateMap.get(20870)==1&&serviceStateMap.get(20890)==0) {
+            tempIndexs = indexs3;
+        }else if(serviceStateMap.get(20880)==0&&serviceStateMap.get(20870)==0&&serviceStateMap.get(20890)==1) {
+            tempIndexs = indexs4;
+        }else if(serviceStateMap.get(20880)==0&&serviceStateMap.get(20870)==1&&serviceStateMap.get(20890)==0) {
+            tempIndexs = indexs5;
+        }else if(serviceStateMap.get(20880)==1&&serviceStateMap.get(20870)==0&&serviceStateMap.get(20890)==0) {
+            tempIndexs = indexs6;
         }
 
+        if(null==tempIndexs) {
+            return null;
+        }
 
+       int index = tempIndexs[ThreadLocalRandom.current().nextInt(tempIndexs.length)];
        Invoker invoker1 = invokers.get(index);
-       int port = invoker1.getUrl().getPort();
+
+       if(serviceStateMap.get(invoker1.getUrl().getPort())==0) {
+           System.out.println("请求到宕机服务，检测状态");
+           downMaps.put((String)invocation.getArguments()[0],(byte)0);
+       }
+
+       return invoker1;
+
+      /* int port = invoker1.getUrl().getPort();
        int[] array = new int[]{0,1,2};
        Integer finalPort = null;
        if(realCon.get(port).incrementAndGet()<=maxCon.get(port)) {
@@ -141,7 +152,7 @@ public class UserLoadBalance implements LoadBalance {
        }else {
            System.out.println("超出最大速率，拒绝请求");
            return null;
-       }
+       }*/
     }
 
 

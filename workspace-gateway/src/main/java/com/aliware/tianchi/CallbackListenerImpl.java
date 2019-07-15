@@ -24,13 +24,13 @@ public class CallbackListenerImpl implements CallbackListener {
     @Override
     public void receiveServerMsg(String msg) {
         String msgs [] = msg.split(",");
-        if("small".equals(msgs[0])) {
+       /* if("small".equals(msgs[0])) {
             smallMemorySize = Integer.parseInt(msgs[1]);
         }else if("medium".equals(msgs[0])){
             mediumMemorySize = Integer.parseInt(msgs[1]);
         }else if("large".equals(msgs[0])) {
             largeMemorySize = Integer.parseInt(msgs[1]);
-        }
+        }*/
         System.err.println("receive msg from server :" + msg);
         Set<Map.Entry<Integer,AtomicInteger>> set = UserLoadBalance.realCon.entrySet();
         for(Map.Entry<Integer,AtomicInteger> entry:set) {

@@ -20,8 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class UserLoadBalance implements LoadBalance {
 
-    private int total = 16383;
-    private int num = 2;
+    private static int total = 16383;
+    private static int num = 2;
 
     public static volatile Map<Integer,Integer> serviceRates = new HashMap<>();//服务的速率，每秒的并发数
 
@@ -36,6 +36,12 @@ public class UserLoadBalance implements LoadBalance {
     private static HashMap<Integer,Integer> maxCon = null;//各个服务的最大并发数。1秒钟
     public static HashMap<Integer,AtomicInteger> realCon = null;//各个服务的最近一秒钟的并发数
 
+
+    private static int large = CallbackListenerImpl.largeMemorySize;
+    private static int medium = CallbackListenerImpl.mediumMemorySize;
+    private static int small = CallbackListenerImpl.smallMemorySize;
+    private static int a = 0;
+    private static int b = 0;
     static {
 
 
@@ -51,9 +57,9 @@ public class UserLoadBalance implements LoadBalance {
 
 
         maxCon = new HashMap<>();
-        maxCon.put(20880,4000);
-        maxCon.put(20870,9000);
-        maxCon.put(20890,13000);
+        maxCon.put(20880,3000);
+        maxCon.put(20870,10000);
+        maxCon.put(20890,14000);
 
         /*maxCon.put(20880,307);
         maxCon.put(20870,692);
@@ -64,21 +70,8 @@ public class UserLoadBalance implements LoadBalance {
         realCon.put(20870,new AtomicInteger(0));
         realCon.put(20890,new AtomicInteger(0));
 
-       /* serviceRates.put(20880,200);
-        serviceRates.put(20870,450);
-        serviceRates.put(20890,650);*/
-    }
 
-    @Override
-    public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
 
-        long teststart = System.nanoTime();
-
-        int large = CallbackListenerImpl.largeMemorySize;
-        int medium = CallbackListenerImpl.mediumMemorySize;
-        int small = CallbackListenerImpl.smallMemorySize;
-        int a = 0;
-        int b = 0;
         int c = large+medium+small;
         int temp = 0;
         if(large==0) {
@@ -93,6 +86,14 @@ public class UserLoadBalance implements LoadBalance {
             b = a + (temp*medium);
 
         }
+
+       /* serviceRates.put(20880,200);
+        serviceRates.put(20870,450);
+        serviceRates.put(20890,650);*/
+    }
+
+    @Override
+    public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
         //1.生成随机字符串key
         String key = (String)invocation.getArguments()[0];
         //2.获取key的hash值

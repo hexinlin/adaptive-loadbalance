@@ -57,7 +57,7 @@ public class UserLoadBalance implements LoadBalance {
 
 
         maxCon = new HashMap<>();
-        maxCon.put(20880,3000);
+        maxCon.put(20880,500);
         maxCon.put(20870,10000);
         maxCon.put(20890,14000);
 

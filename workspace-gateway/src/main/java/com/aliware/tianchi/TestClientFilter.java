@@ -91,19 +91,60 @@ public class TestClientFilter implements Filter {
                String[] temps = str.split(":");
                int port = Integer.parseInt(temps[temps.length-1].substring(0,temps[temps.length-1].length()-1));
                if(str.indexOf("EXHAUSTED")>-1) {
-                   System.out.println("EXHAUSTED:"+port);
-                   UserLoadBalance.serviceStateMap.put(port,(byte)0);
+                  //分析内存情况
+                   if(port==UserLoadBalance.smallPort) {
+                       if(CallbackListenerImpl.lowestSmallMemorySize==null) {
+                           int small = 0;
+                           for(CallbackListenerImpl.MemoryNode node:CallbackListenerImpl.smallList) {
+                               if(small==0) {
+                                   small = node.getSize();
+                               }else {
+                                   small = small<node.getSize()?small:node.getSize();
+                               }
+
+                           }
+                           CallbackListenerImpl.lowestSmallMemorySize=small;
+                           CallbackListenerImpl.smallMemorySize = small;
+                           System.out.println("small-init:"+CallbackListenerImpl.initSmallMemorySize+",small-lowest:"+CallbackListenerImpl.lowestSmallMemorySize);
+
+                       }
+                   }else if(port==UserLoadBalance.mediumPort) {
+                       if(CallbackListenerImpl.lowestMediumMemorySize==null) {
+                           int medium = 0;
+                           for(CallbackListenerImpl.MemoryNode node:CallbackListenerImpl.mediumList) {
+                               if(medium==0) {
+                                   medium=node.getSize();
+                               }else {
+                                   medium = medium<node.getSize()?medium:node.getSize();
+                               }
+
+                           }
+                           CallbackListenerImpl.lowestMediumMemorySize=medium;
+                           CallbackListenerImpl.mediumMemorySize = medium;
+                           System.out.println("medium-init:"+CallbackListenerImpl.initMediumMemorySize+",medium-lowest:"+CallbackListenerImpl.lowestMediumMemorySize);
+                       }
+                   }else {
+                       if(CallbackListenerImpl.lowestLargeMemorySize==null) {
+                           int large = 0;
+                           for(CallbackListenerImpl.MemoryNode node:CallbackListenerImpl.largeList) {
+                               if(large==0) {
+                                   large = node.getSize();
+                               }else {
+                                   large = large<node.getSize()?large:node.getSize();
+                               }
+
+                           }
+                           CallbackListenerImpl.lowestLargeMemorySize=large;
+                           CallbackListenerImpl.largeMemorySize=large;
+                           System.out.println("large-init:"+CallbackListenerImpl.initLargeMemorySize+",large-lowest:"+CallbackListenerImpl.lowestLargeMemorySize);
+
+                       }
+                   }
+
 
                }
            }
 
-
-        }else {
-            //解锁
-            if(UserLoadBalance.downMaps.get((String)invocation.getArguments()[0])!=null) {
-                UserLoadBalance.serviceStateMap.put(invocation.getInvoker().getUrl().getPort(),(byte)1);
-                System.out.println("解除宕机状态");
-            }
 
         }
         return result;

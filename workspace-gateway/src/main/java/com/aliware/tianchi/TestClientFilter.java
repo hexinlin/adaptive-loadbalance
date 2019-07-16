@@ -88,7 +88,7 @@ public class TestClientFilter implements Filter {
                String str = result.getException().toString();
                System.out.println("---"+str);
                //:20890!
-               String[] temps = str.split(":");
+              /* String[] temps = str.split(":");
                int port = Integer.parseInt(temps[temps.length-1].substring(0,temps[temps.length-1].length()-1));
                if(str.indexOf("EXHAUSTED")>-1) {
                   //分析内存情况
@@ -142,7 +142,7 @@ public class TestClientFilter implements Filter {
                    }
 
 
-               }
+               }*/
            }
 
 

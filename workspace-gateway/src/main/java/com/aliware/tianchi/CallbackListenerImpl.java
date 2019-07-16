@@ -38,51 +38,31 @@ public class CallbackListenerImpl implements CallbackListener {
     public static volatile LinkedList<MemoryNode> mediumList = new LinkedList();
     public static volatile LinkedList<MemoryNode> largeList = new LinkedList();
 
-    public static final int baseSize = 300;
+    public static final int baseSize = 10000;
 
     @Override
     public void receiveServerMsg(String msg) {
         String msgs [] = msg.split(",");
         long time = System.nanoTime();
+       // System.out.println(msg);
        if("small".equals(msgs[0])) {
             smallMemorySize = Integer.parseInt(msgs[1]);
-            if(initSmallMemorySize==0) {
-                initSmallMemorySize = smallMemorySize;
-            }else {
+            /*if(lowestSmallMemorySize==null) {
                 initSmallMemorySize = Math.max(initSmallMemorySize,smallMemorySize);
-            }
-            if(smallList.size()<baseSize) {
                 smallList.add(new MemoryNode(time,smallMemorySize));
-            }else {
-                smallList.removeFirst();
-                smallList.add(new MemoryNode(time,smallMemorySize));
-            }
+            }*/
         }else if("medium".equals(msgs[0])){
             mediumMemorySize = Integer.parseInt(msgs[1]);
-            if(initMediumMemorySize==0) {
-                initMediumMemorySize = mediumMemorySize;
-            }else {
-                initMediumMemorySize = Math.max(initMediumMemorySize,mediumMemorySize);
-            }
-           if(mediumList.size()<baseSize) {
+          /* if(lowestMediumMemorySize==null) {
+               initMediumMemorySize = Math.max(initMediumMemorySize,mediumMemorySize);
                mediumList.add(new MemoryNode(time,mediumMemorySize));
-           }else {
-               mediumList.removeFirst();
-               mediumList.add(new MemoryNode(time,mediumMemorySize));
-           }
+           }*/
         }else if("large".equals(msgs[0])) {
             largeMemorySize = Integer.parseInt(msgs[1]);
-            if(initLargeMemorySize==0) {
-                initLargeMemorySize=largeMemorySize;
-            }else {
-                initLargeMemorySize = Math.max(initLargeMemorySize,largeMemorySize);
-            }
-           if(largeList.size()<baseSize) {
+          /* if(lowestLargeMemorySize==null) {
+               initLargeMemorySize = Math.max(initLargeMemorySize,largeMemorySize);
                largeList.add(new MemoryNode(time,largeMemorySize));
-           }else {
-               largeList.removeFirst();
-               largeList.add(new MemoryNode(time,largeMemorySize));
-           }
+           }*/
         }
     }
 

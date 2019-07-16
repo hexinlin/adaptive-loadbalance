@@ -1,5 +1,6 @@
 package com.aliware.tianchi;
 
+import jdk.nashorn.internal.codegen.CompilerConstants;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
@@ -30,11 +31,25 @@ public class UserLoadBalance implements LoadBalance {
     private int[] array = null;
     @Override
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
-
-        if(CallbackListenerImpl.initSmallMemorySize==0) {
+        int small = CallbackListenerImpl.smallMemorySize;
+        int medium = CallbackListenerImpl.mediumMemorySize;
+        int large = CallbackListenerImpl.largeMemorySize;
+        if(small==0||medium==0||large==0) {
             return invokers.get(ThreadLocalRandom.current().nextInt(invokers.size()));
         }else {
-            //计算权值
+
+            int temp  = ThreadLocalRandom.current().nextInt(small+medium+large);
+            int index = 0;
+            System.out.println(small+","+medium+","+large);
+            if(temp<large) {
+                index =2;
+            }else if(temp<(large+medium)) {
+                index =1;
+            }else {
+                index = 0;
+            }
+            return invokers.get(index);
+            /*//计算权值
             int tempsmall = CallbackListenerImpl.initSmallMemorySize-CallbackListenerImpl.smallMemorySize;
             float small = CallbackListenerImpl.initSmallMemorySize/(float)(tempsmall<=0?1:tempsmall);
             int tempmedium = CallbackListenerImpl.initMediumMemorySize-CallbackListenerImpl.mediumMemorySize;
@@ -43,22 +58,22 @@ public class UserLoadBalance implements LoadBalance {
             float large = CallbackListenerImpl.initLargeMemorySize/(float)(templarge<=0?1:templarge);
             if(CallbackListenerImpl.lowestSmallMemorySize!=null&&CallbackListenerImpl.smallMemorySize<=CallbackListenerImpl.lowestSmallMemorySize) {
 
-                small = 0;
+                small = 1;
             }
             if(CallbackListenerImpl.lowestMediumMemorySize!=null&&CallbackListenerImpl.mediumMemorySize<=CallbackListenerImpl.lowestMediumMemorySize) {
 
-                medium = 0;
+                medium = 1;
             }
             if(CallbackListenerImpl.lowestLargeMemorySize!=null&&CallbackListenerImpl.largeMemorySize<=CallbackListenerImpl.lowestLargeMemorySize) {
 
-                large = 0;
+                large = 1;
             }
 
             Float smallScope =  CallbackListenerImpl.initSmallMemorySize*small;
             Float mediumScope = CallbackListenerImpl.initMediumMemorySize*medium;
             Float largeScope = CallbackListenerImpl.initLargeMemorySize*large;
 
-            System.out.println("small:"+small+",medium:"+medium+",large:"+large);
+            //System.out.println("small:"+small+",medium:"+medium+",large:"+large);
             System.out.println("smallScope:"+smallScope+",mediumScope:"+mediumScope+",largeScope:"+largeScope);
 
             int total = smallScope.intValue()+mediumScope.intValue()+largeScope.intValue();
@@ -74,7 +89,7 @@ public class UserLoadBalance implements LoadBalance {
             }else {
                 index = 0;
             }
-            return invokers.get(index);
+            return invokers.get(index);*/
         }
     }
 

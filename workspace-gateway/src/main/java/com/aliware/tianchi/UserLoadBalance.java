@@ -70,10 +70,31 @@ public class UserLoadBalance implements LoadBalance {
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
 
         if(true){
+            System.out.println("-758");
+            int smallUsed = 0;
+            AtomicInteger[] smallBeforeAtomic = TestClientFilter.beforeMap.get(20880);
+            AtomicInteger[] smallAfterAtomic = TestClientFilter.afterMap.get(20880);
+            for(int i=0;i<smallAfterAtomic.length;i++) {
+                smallUsed = smallUsed+(smallBeforeAtomic[i].get()-smallAfterAtomic[i].get());
+            }
 
-            int small = maxCon.get(20880)-(TestClientFilter.beforeMap.get(20880).get()-TestClientFilter.afterMap.get(20880).get());
-            int medium = maxCon.get(20870)-(TestClientFilter.beforeMap.get(20870).get()-TestClientFilter.afterMap.get(20870).get());
-            int large = maxCon.get(20890)-(TestClientFilter.beforeMap.get(20890).get()-TestClientFilter.afterMap.get(20890).get());
+            int mediumUsed = 0;
+            AtomicInteger[] mediumBeforeAtomic = TestClientFilter.beforeMap.get(20870);
+            AtomicInteger[] mediumAfterAtomic = TestClientFilter.afterMap.get(20870);
+            for(int i=0;i<mediumBeforeAtomic.length;i++) {
+                mediumUsed = mediumUsed+(mediumBeforeAtomic[i].get()-mediumAfterAtomic[i].get());
+            }
+
+            int largeUsed = 0;
+            AtomicInteger[] largeBeforeAtomic = TestClientFilter.beforeMap.get(20890);
+            AtomicInteger[] largeAfterAtomic = TestClientFilter.afterMap.get(20890);
+            for(int i=0;i<largeBeforeAtomic.length;i++) {
+                largeUsed = largeUsed+(largeBeforeAtomic[i].get()-largeAfterAtomic[i].get());
+            }
+
+            int small = maxCon.get(20880)-smallUsed;
+            int medium = maxCon.get(20870)-mediumUsed;
+            int large = maxCon.get(20890)-largeUsed;
 
             int total = small+medium+large;
             if(total==0) {

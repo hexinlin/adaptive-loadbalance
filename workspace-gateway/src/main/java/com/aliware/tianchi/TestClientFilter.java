@@ -10,10 +10,7 @@ import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcException;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -26,16 +23,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Activate(group = Constants.CONSUMER)
 public class TestClientFilter implements Filter {
 
-    public static HashMap<Integer,AtomicInteger> beforeMap = new HashMap<>();
-    public static HashMap<Integer,AtomicInteger> afterMap = new HashMap<>();
+    public static HashMap<Integer,AtomicInteger[]> beforeMap = new HashMap<>();
+    public static HashMap<Integer,AtomicInteger[]> afterMap = new HashMap<>();
     static {
-        beforeMap.put(20880,new AtomicInteger(0));
-        beforeMap.put(20870,new AtomicInteger(0));
-        beforeMap.put(20890,new AtomicInteger(0));
+        beforeMap.put(20880,new AtomicInteger[4]);
+        beforeMap.put(20870,new AtomicInteger[8]);
+        beforeMap.put(20890,new AtomicInteger[12]);
 
-        afterMap.put(20880,new AtomicInteger(0));
-        afterMap.put(20870,new AtomicInteger(0));
-        afterMap.put(20890,new AtomicInteger(0));
+        afterMap.put(20880,new AtomicInteger[4]);
+        afterMap.put(20870,new AtomicInteger[8]);
+        afterMap.put(20890,new AtomicInteger[12]);
     }
 
 
@@ -43,7 +40,8 @@ public class TestClientFilter implements Filter {
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
        try {
 
-           beforeMap.get(invoker.getUrl().getPort()).incrementAndGet();
+           int port = invoker.getUrl().getPort();
+           beforeMap.get(port)[ThreadLocalRandom.current().nextInt(beforeMap.get(port).length)].incrementAndGet();
            Result result = invoker.invoke(invocation);
            return result;
        }catch (Exception e) {
@@ -55,7 +53,8 @@ public class TestClientFilter implements Filter {
 
     @Override
     public Result onResponse(Result result, Invoker<?> invoker, Invocation invocation) {
-        afterMap.get(invoker.getUrl().getPort()).incrementAndGet();
+        int port = invoker.getUrl().getPort();
+        afterMap.get(port)[ThreadLocalRandom.current().nextInt(afterMap.get(port).length)].incrementAndGet();
         if(result.hasException()) {
            if(!(result.getException() instanceof TimeoutException)) {
                String str = result.getException().toString();
@@ -68,29 +67,5 @@ public class TestClientFilter implements Filter {
     }
 
 
-    class RequestTime {
-        private long requestTime;//发起请求的时间
-        private long requestDuration;//请求的RTT
 
-        RequestTime(long requestTime,long requestDuration) {
-            this.requestTime = requestTime;
-            this.requestDuration = requestDuration;
-        }
-
-        public long getRequestTime() {
-            return requestTime;
-        }
-
-        public void setRequestTime(long requestTime) {
-            this.requestTime = requestTime;
-        }
-
-        public long getRequestDuration() {
-            return requestDuration;
-        }
-
-        public void setRequestDuration(long requestDuration) {
-            this.requestDuration = requestDuration;
-        }
-    }
 }

@@ -42,7 +42,7 @@ public class TestServerFilter implements Filter {
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         try{
 
-            statis.get(invoker.getUrl().getPort()).incrementAndGet();
+           // statis.get(invoker.getUrl().getPort()).incrementAndGet();
            // long start = System.nanoTime();
             Result result = invoker.invoke(invocation);
 
@@ -62,7 +62,7 @@ public class TestServerFilter implements Filter {
 
     @Override
     public Result onResponse(Result result, Invoker<?> invoker, Invocation invocation) {
-        statis.get(invoker.getUrl().getPort()).decrementAndGet();
+       // statis.get(invoker.getUrl().getPort()).decrementAndGet();
         if(result.hasException()) {
             System.out.println("server:"+result.getException().toString());
         }

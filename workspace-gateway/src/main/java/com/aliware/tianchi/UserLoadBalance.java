@@ -32,26 +32,35 @@ public class UserLoadBalance implements LoadBalance {
 
     private int[] array = null;
 
-    private int nstime = 50*1000000;//假设已知平均处理时间为500ms
+    public static  int nstime = 400*1000000;//假设已知平均处理时间为500ms
+    public static  int mstime = 400;//假设已知平均处理时间为500ms
 
     public static HashMap<Integer,Integer> maxCon  = new HashMap<>();//最大并发数。
-    public static HashMap<Integer,AtomicInteger> statis = new HashMap<>();
+    public static volatile HashMap<Integer,Integer> statis = new HashMap<>();
     public static HashMap<Integer,Long> statisStartTime = new HashMap<>();
+
+    public static HashMap<Integer,Timer> timers = new HashMap<>();
 
     private ReentrantLock smallLock = new ReentrantLock();
     private ReentrantLock mediumLock = new ReentrantLock();
     private ReentrantLock largeLock = new ReentrantLock();
 
+    public static  int smallCount = 0;
+    public static  int mediumCount = 0;
+    public static  int largeCount = 0;
+
 
 
     static {
-        statis.put(20880,new AtomicInteger(0));
-        statis.put(20870,new AtomicInteger(0));
-        statis.put(20890,new AtomicInteger(0));
+        statis.put(20880,0);
+        statis.put(20870,0);
+        statis.put(20890,0);
 
         maxCon.put(20880,200);
         maxCon.put(20870,450);
         maxCon.put(20890,650);
+
+
     }
 
 
@@ -59,12 +68,41 @@ public class UserLoadBalance implements LoadBalance {
 
     @Override
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
+
+        if(true){
+
+            int small = maxCon.get(20880)-(TestClientFilter.beforeMap.get(20880).get()-TestClientFilter.afterMap.get(20880).get());
+            int medium = maxCon.get(20870)-(TestClientFilter.beforeMap.get(20870).get()-TestClientFilter.afterMap.get(20870).get());
+            int large = maxCon.get(20890)-(TestClientFilter.beforeMap.get(20890).get()-TestClientFilter.afterMap.get(20890).get());
+
+            int total = small+medium+large;
+            if(total==0) {
+                System.out.println("无资源，拒绝");
+            }
+            int temp = ThreadLocalRandom.current().nextInt(total);
+            int index = 0;
+            if(temp<small) {
+                index = 0;
+            }else if(temp<(small+medium)) {
+                index = 1;
+            }else  {
+                index = 2;
+            }
+
+            return invokers.get(index);
+        }
+
+        long startTime = System.nanoTime();
         int small = CallbackListenerImpl.smallMemorySize;
         int medium = CallbackListenerImpl.mediumMemorySize;
         int large = CallbackListenerImpl.largeMemorySize;
         if(small==0||medium==0||large==0) {
             return invokers.get(ThreadLocalRandom.current().nextInt(invokers.size()));
         }else {
+            if(true){
+                System.out.println((System.nanoTime()-startTime)/1000000+"ms");
+                return invokers.get(ThreadLocalRandom.current().nextInt(invokers.size()));
+            }
 
             int temp  = ThreadLocalRandom.current().nextInt(small+medium+large);
             int index = 0;
@@ -74,118 +112,52 @@ public class UserLoadBalance implements LoadBalance {
             if(temp<large) {
                 index =2;
                 port = 20890;
-                int result =0 ;
-                int num = 0;
                 int size = CallbackListenerImpl.largeMemorySize;
-                long startTime = statisStartTime.get(port);
-                largeLock.lock();
-                if((num=statis.get(port).incrementAndGet())<=size) {
-                    System.out.println("直接通过请求,port:"+port);
+                int num = 0;
+                if((largeCount++)<size) {
+                    //CallbackListenerImpl.delayMap.get(port).put(new DelayedItem(nstime));
+                    System.out.println("通过请求,port:"+port+",size:"+size+",num:"+num);
                 }else {
-                    if(((System.nanoTime()-startTime)/nstime)*maxCon.get(port)>=(num-size)) {
-                        System.out.println("对比速率通过,port:"+port);
-                    }else {
-                        statis.get(port).decrementAndGet();
-                        System.out.println("对比速率决绝请求,port:"+port);
-                        return null;
-                    }
+                    System.out.println("拒绝");
+                    return null;
                 }
-                largeLock.unlock();
 
 
             }else if(temp<(large+medium)) {
                 index =1;
                 port = 20870;
 
-                int result =0 ;
+                int size = CallbackListenerImpl.largeMemorySize;
                 int num = 0;
-                int size = CallbackListenerImpl.mediumMemorySize;
-                long startTime = statisStartTime.get(port);
-                mediumLock.lock();
-                if((num=statis.get(port).incrementAndGet())<=size) {
-                    System.out.println("直接通过请求,port:"+port);
+                if((mediumCount++)<size) {
+                   // CallbackListenerImpl.delayMap.get(port).put(new DelayedItem(nstime));
+                    System.out.println("通过请求,port:"+port+",size:"+size+",num:"+num);
                 }else {
-                    if(((System.nanoTime()-startTime)/nstime)*maxCon.get(port)>=(num-size)) {
-                        System.out.println("对比速率通过,port:"+port);
-                    }else {
-                        statis.get(port).decrementAndGet();
-                        System.out.println("对比速率决绝请求,port:"+port);
-                        return null;
-                    }
+                    System.out.println("拒绝");
+                    return null;
                 }
-                mediumLock.unlock();
-
             }else {
                 index = 0;
                 port = 20880;
                 int result =0 ;
                 int num = 0;
                 int size = CallbackListenerImpl.smallMemorySize;
-                long startTime = statisStartTime.get(port);
-                smallLock.lock();
-                if((num=statis.get(port).incrementAndGet())<=size) {
-                    System.out.println("直接通过请求,port:"+port);
+                if((smallCount++)<size) {
+                   // CallbackListenerImpl.delayMap.get(port).put(new DelayedItem(nstime));
+                    System.out.println("通过请求,port:"+port+",size:"+size+",num:"+num);
                 }else {
-                    if(((System.nanoTime()-startTime)/nstime)*maxCon.get(port)>=(num-size)) {
-                        System.out.println("对比速率通过,port:"+port);
-                    }else {
-                        statis.get(port).decrementAndGet();
-                        System.out.println("对比速率决绝请求,port:"+port);
-                        return null;
-                    }
+                    System.out.println("拒绝");
+                    return null;
                 }
-                smallLock.unlock();
 
             }
 
 
-
-
-
+            System.out.println((System.nanoTime()-startTime)/1000000+"ms");
 
 
             return invokers.get(index);
-            /*//计算权值
-            int tempsmall = CallbackListenerImpl.initSmallMemorySize-CallbackListenerImpl.smallMemorySize;
-            float small = CallbackListenerImpl.initSmallMemorySize/(float)(tempsmall<=0?1:tempsmall);
-            int tempmedium = CallbackListenerImpl.initMediumMemorySize-CallbackListenerImpl.mediumMemorySize;
-            float medium = CallbackListenerImpl.initMediumMemorySize/(float)(tempmedium<=0?1:tempmedium);
-            int templarge = CallbackListenerImpl.initLargeMemorySize-CallbackListenerImpl.largeMemorySize;
-            float large = CallbackListenerImpl.initLargeMemorySize/(float)(templarge<=0?1:templarge);
-            if(CallbackListenerImpl.lowestSmallMemorySize!=null&&CallbackListenerImpl.smallMemorySize<=CallbackListenerImpl.lowestSmallMemorySize) {
 
-                small = 1;
-            }
-            if(CallbackListenerImpl.lowestMediumMemorySize!=null&&CallbackListenerImpl.mediumMemorySize<=CallbackListenerImpl.lowestMediumMemorySize) {
-
-                medium = 1;
-            }
-            if(CallbackListenerImpl.lowestLargeMemorySize!=null&&CallbackListenerImpl.largeMemorySize<=CallbackListenerImpl.lowestLargeMemorySize) {
-
-                large = 1;
-            }
-
-            Float smallScope =  CallbackListenerImpl.initSmallMemorySize*small;
-            Float mediumScope = CallbackListenerImpl.initMediumMemorySize*medium;
-            Float largeScope = CallbackListenerImpl.initLargeMemorySize*large;
-
-            //System.out.println("small:"+small+",medium:"+medium+",large:"+large);
-            System.out.println("smallScope:"+smallScope+",mediumScope:"+mediumScope+",largeScope:"+largeScope);
-
-            int total = smallScope.intValue()+mediumScope.intValue()+largeScope.intValue();
-            if(total==0) {
-                return null;
-            }
-            int temp = ThreadLocalRandom.current().nextInt(total);
-            int index = 0;
-            if(temp<largeScope) {
-                index =2;
-            }else if(temp<largeScope+mediumScope) {
-                index =1;
-            }else {
-                index = 0;
-            }
-            return invokers.get(index);*/
         }
     }
 
@@ -207,6 +179,30 @@ public class UserLoadBalance implements LoadBalance {
         return wcrc;
     }
 
+
+    class DelayedItem implements Delayed {
+
+        private long liveTime ;
+        private long removeTime;
+
+        public DelayedItem(long liveTime){
+            this.liveTime = liveTime;
+            this.removeTime = liveTime + System.nanoTime();
+        }
+        @Override
+        public int compareTo(Delayed o) {
+            if (o == null) return 1;
+            if (o == this) return  0;
+            long diff = getDelay(TimeUnit.NANOSECONDS) - o.getDelay(TimeUnit.NANOSECONDS);
+            return diff > 0 ? 1:diff == 0? 0:-1;
+        }
+
+        @Override
+        public long getDelay(TimeUnit unit) {
+            return unit.convert(removeTime - System.nanoTime(), unit);
+        }
+
+    }
 
 
 

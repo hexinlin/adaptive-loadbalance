@@ -3,10 +3,9 @@ package com.aliware.tianchi;
 import org.apache.dubbo.config.annotation.Service;
 import org.apache.dubbo.rpc.listener.CallbackListener;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import javax.jws.soap.SOAPBinding;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -34,73 +33,123 @@ public class CallbackListenerImpl implements CallbackListener {
     public static volatile int mediumMemorySize = 0;//单位M
     public static volatile int largeMemorySize = 0;//单位M
 
-    public static volatile LinkedList<MemoryNode> smallList = new LinkedList();
-    public static volatile LinkedList<MemoryNode> mediumList = new LinkedList();
-    public static volatile LinkedList<MemoryNode> largeList = new LinkedList();
+    public static HashMap<Integer,DelayQueue> delayMap = new HashMap<>();
 
     public static final int baseSize = 10000;
+    private int port = 0;
+
+
+    static {
+        delayMap.put(20880,new DelayQueue());
+        delayMap.put(20870,new DelayQueue());
+        delayMap.put(20890,new DelayQueue());
+
+   /*   new Thread(new Runnable() {
+            @Override
+            public void run() {
+                DelayQueue delayQueue = delayMap.get(20880);
+                while(delayQueue.poll()!=null) {
+                    System.out.println("smallMemorySize++");
+                    smallMemorySize++;
+                }
+            }
+        }).start();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                DelayQueue delayQueue = delayMap.get(20870);
+                while(delayQueue.poll()!=null) {
+                    System.out.println("mediumMemorySize++");
+                    mediumMemorySize++;
+                }
+            }
+        }).start();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                DelayQueue delayQueue = delayMap.get(20890);
+                while(delayQueue.poll()!=null) {
+                    System.out.println("largeMemorySize++");
+                    largeMemorySize++;
+                }
+            }
+        }).start();*/
+    }
+
 
     @Override
     public void receiveServerMsg(String msg) {
-        String msgs [] = msg.split(",");
+       /* String msgs [] = msg.split(",");
         long time = System.nanoTime();
         System.out.println(msg);
+        int current = 0;
+
        if("small".equals(msgs[0])) {
             //smallMemorySize = Integer.parseInt(msgs[1]);
-           smallMemorySize = 200-Integer.parseInt(msgs[2]);
-           UserLoadBalance.statis.get(20880).set(0);
-           UserLoadBalance.statisStartTime.put(20880,time);
-            /*if(lowestSmallMemorySize==null) {
-                initSmallMemorySize = Math.max(initSmallMemorySize,smallMemorySize);
-                smallList.add(new MemoryNode(time,smallMemorySize));
-            }*/
+           port = 20880;
+           current = Integer.parseInt(msgs[2]);
+           smallMemorySize = UserLoadBalance.maxCon.get(port)-current;
+           //delayMap.get(port).clear();
+           for(int i=0;i<current;i++) {
+               //delayMap.get(port).put(new DelayedItem(UserLoadBalance.nstime));
+           }
+           UserLoadBalance.smallCount=0;
+
+
         }else if("medium".equals(msgs[0])){
             //mediumMemorySize = Integer.parseInt(msgs[1]);
-            mediumMemorySize = 450-Integer.parseInt(msgs[2]);
-           UserLoadBalance.statis.get(20870).set(0);
-           UserLoadBalance.statisStartTime.put(20870,time);
-          /* if(lowestMediumMemorySize==null) {
-               initMediumMemorySize = Math.max(initMediumMemorySize,mediumMemorySize);
-               mediumList.add(new MemoryNode(time,mediumMemorySize));
-           }*/
+           port = 20870;
+           current = Integer.parseInt(msgs[2]);
+           mediumMemorySize = 450-Integer.parseInt(msgs[2]);
+          // delayMap.get(port).clear();
+           for(int i=0;i<current;i++) {
+              // delayMap.get(port).put(new DelayedItem(UserLoadBalance.nstime));
+           }
+           UserLoadBalance.mediumCount=0;
+
         }else if("large".equals(msgs[0])) {
-            //largeMemorySize = Integer.parseInt(msgs[1]);
-            largeMemorySize = 650-Integer.parseInt(msgs[2]);
-           UserLoadBalance.statis.get(20890).set(0);
-           UserLoadBalance.statisStartTime.put(20890,time);
-          /* if(lowestLargeMemorySize==null) {
-               initLargeMemorySize = Math.max(initLargeMemorySize,largeMemorySize);
-               largeList.add(new MemoryNode(time,largeMemorySize));
-           }*/
+           port = 20890;
+           current = Integer.parseInt(msgs[2]);
+           largeMemorySize = 650-Integer.parseInt(msgs[2]);
+           //delayMap.get(port).clear();
+           for(int i=0;i<current;i++) {
+               //delayMap.get(port).put(new DelayedItem(UserLoadBalance.nstime));
+           }
+           UserLoadBalance.largeCount=0;
+
+        }*/
+
+
+
+    }
+
+    class DelayedItem implements Delayed {
+
+        private long liveTime ;
+        private long removeTime;
+
+        public DelayedItem(long liveTime){
+            this.liveTime = liveTime;
+            this.removeTime = liveTime + System.nanoTime();
         }
+        @Override
+        public int compareTo(Delayed o) {
+            if (o == null) return 1;
+            if (o == this) return  0;
+            long diff = getDelay(TimeUnit.NANOSECONDS) - o.getDelay(TimeUnit.NANOSECONDS);
+            return diff > 0 ? 1:diff == 0? 0:-1;
+        }
+
+        @Override
+        public long getDelay(TimeUnit unit) {
+            return unit.convert(removeTime - System.nanoTime(), unit);
+        }
+
     }
 
 
 
 
-    class MemoryNode {
-        private long time;//时间
-        private int size;//内存余量大小
-
-        MemoryNode(long time,int size) {
-            this.time = time;
-            this.size = size;
-        }
-
-        public long getTime() {
-            return time;
-        }
-
-        public void setTime(long time) {
-            this.time = time;
-        }
-
-        public int getSize() {
-            return size;
-        }
-
-        public void setSize(int size) {
-            this.size = size;
-        }
-    }
 }

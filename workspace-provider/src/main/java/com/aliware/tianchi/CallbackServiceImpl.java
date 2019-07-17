@@ -39,7 +39,7 @@ public class CallbackServiceImpl implements CallbackService {
                                 port = 20890;
                             }
                             StringBuilder sb = new StringBuilder();
-                            sb.append(quota).append(",").append((Runtime.getRuntime().freeMemory()>>20)).append(",").append(TestServerFilter.statis.get(port).get());
+                            sb.append(quota).append(",").append((Runtime.getRuntime().freeMemory()>>20)).append(",").append(0);
                             entry.getValue().receiveServerMsg(sb.toString());
                         } catch (Throwable t1) {
                             //System.out.println("异常了"+t1.toString());
@@ -48,7 +48,7 @@ public class CallbackServiceImpl implements CallbackService {
                     }
                 }
             }
-        }, 0, 1000);
+        }, 0, 5000);
     }
 
     private Timer timer = new Timer();
@@ -73,7 +73,7 @@ public class CallbackServiceImpl implements CallbackService {
             port = 20890;
         }
         StringBuilder sb = new StringBuilder();
-        sb.append(quota).append(",").append((Runtime.getRuntime().freeMemory()>>20)).append(",").append(TestServerFilter.statis.get(port).get());
+        sb.append(quota).append(",").append((Runtime.getRuntime().freeMemory()>>20)).append(",").append("0");
         listener.receiveServerMsg(sb.toString());
     }
 }

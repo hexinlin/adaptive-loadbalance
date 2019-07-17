@@ -10,6 +10,8 @@ import org.apache.dubbo.rpc.cluster.LoadBalance;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author daofeng.xjf
@@ -29,6 +31,32 @@ public class UserLoadBalance implements LoadBalance {
     public final static int largePort = 20890;
 
     private int[] array = null;
+
+    private int nstime = 50*1000000;//假设已知平均处理时间为500ms
+
+    public static HashMap<Integer,Integer> maxCon  = new HashMap<>();//最大并发数。
+    public static HashMap<Integer,AtomicInteger> statis = new HashMap<>();
+    public static HashMap<Integer,Long> statisStartTime = new HashMap<>();
+
+    private ReentrantLock smallLock = new ReentrantLock();
+    private ReentrantLock mediumLock = new ReentrantLock();
+    private ReentrantLock largeLock = new ReentrantLock();
+
+
+
+    static {
+        statis.put(20880,new AtomicInteger(0));
+        statis.put(20870,new AtomicInteger(0));
+        statis.put(20890,new AtomicInteger(0));
+
+        maxCon.put(20880,200);
+        maxCon.put(20870,450);
+        maxCon.put(20890,650);
+    }
+
+
+
+
     @Override
     public <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
         int small = CallbackListenerImpl.smallMemorySize;
@@ -40,14 +68,82 @@ public class UserLoadBalance implements LoadBalance {
 
             int temp  = ThreadLocalRandom.current().nextInt(small+medium+large);
             int index = 0;
+            int port = 0;
             System.out.println(small+","+medium+","+large);
+
             if(temp<large) {
                 index =2;
+                port = 20890;
+                int result =0 ;
+                int num = 0;
+                int size = CallbackListenerImpl.largeMemorySize;
+                long startTime = statisStartTime.get(port);
+                largeLock.lock();
+                if((num=statis.get(port).incrementAndGet())<=size) {
+                    System.out.println("直接通过请求,port:"+port);
+                }else {
+                    if(((System.nanoTime()-startTime)/nstime)*maxCon.get(port)>=(num-size)) {
+                        System.out.println("对比速率通过,port:"+port);
+                    }else {
+                        statis.get(port).decrementAndGet();
+                        System.out.println("对比速率决绝请求,port:"+port);
+                        return null;
+                    }
+                }
+                largeLock.unlock();
+
+
             }else if(temp<(large+medium)) {
                 index =1;
+                port = 20870;
+
+                int result =0 ;
+                int num = 0;
+                int size = CallbackListenerImpl.mediumMemorySize;
+                long startTime = statisStartTime.get(port);
+                mediumLock.lock();
+                if((num=statis.get(port).incrementAndGet())<=size) {
+                    System.out.println("直接通过请求,port:"+port);
+                }else {
+                    if(((System.nanoTime()-startTime)/nstime)*maxCon.get(port)>=(num-size)) {
+                        System.out.println("对比速率通过,port:"+port);
+                    }else {
+                        statis.get(port).decrementAndGet();
+                        System.out.println("对比速率决绝请求,port:"+port);
+                        return null;
+                    }
+                }
+                mediumLock.unlock();
+
             }else {
                 index = 0;
+                port = 20880;
+                int result =0 ;
+                int num = 0;
+                int size = CallbackListenerImpl.smallMemorySize;
+                long startTime = statisStartTime.get(port);
+                smallLock.lock();
+                if((num=statis.get(port).incrementAndGet())<=size) {
+                    System.out.println("直接通过请求,port:"+port);
+                }else {
+                    if(((System.nanoTime()-startTime)/nstime)*maxCon.get(port)>=(num-size)) {
+                        System.out.println("对比速率通过,port:"+port);
+                    }else {
+                        statis.get(port).decrementAndGet();
+                        System.out.println("对比速率决绝请求,port:"+port);
+                        return null;
+                    }
+                }
+                smallLock.unlock();
+
             }
+
+
+
+
+
+
+
             return invokers.get(index);
             /*//计算权值
             int tempsmall = CallbackListenerImpl.initSmallMemorySize-CallbackListenerImpl.smallMemorySize;

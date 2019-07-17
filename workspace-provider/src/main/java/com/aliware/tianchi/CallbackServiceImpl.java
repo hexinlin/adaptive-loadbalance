@@ -4,11 +4,9 @@ import org.apache.dubbo.config.annotation.Service;
 import org.apache.dubbo.rpc.listener.CallbackListener;
 import org.apache.dubbo.rpc.service.CallbackService;
 
-import java.util.Date;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author daofeng.xjf
@@ -20,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
 //@Service(timeout = 10000)
 public class CallbackServiceImpl implements CallbackService {
 
+
+
     public CallbackServiceImpl() {
         timer.schedule(new TimerTask() {
             @Override
@@ -28,7 +28,19 @@ public class CallbackServiceImpl implements CallbackService {
                     for (Map.Entry<String, CallbackListener> entry : listeners.entrySet()) {
                         try {
                             //entry.getValue().receiveServerMsg(System.getProperty("quota") + " " + new Date().toString());
-                            entry.getValue().receiveServerMsg(System.getProperty("quota") + "," + (Runtime.getRuntime().freeMemory()>>20));
+                           // entry.getValue().receiveServerMsg(System.getProperty("quota") + "," + (Runtime.getRuntime().freeMemory()>>20));
+                            String quota = System.getProperty("quota");
+                            int port = 0;
+                            if("small".equals(quota)) {
+                                port = 20880;
+                            }else if("medium".equals(quota)) {
+                                port = 20870;
+                            }else {
+                                port = 20890;
+                            }
+                            StringBuilder sb = new StringBuilder();
+                            sb.append(quota).append(",").append((Runtime.getRuntime().freeMemory()>>20)).append(",").append(TestServerFilter.statis.get(port).get());
+                            entry.getValue().receiveServerMsg(sb.toString());
                         } catch (Throwable t1) {
                             //System.out.println("异常了"+t1.toString());
                             //listeners.remove(entry.getKey());
@@ -36,7 +48,7 @@ public class CallbackServiceImpl implements CallbackService {
                     }
                 }
             }
-        }, 0, 1);
+        }, 0, 1000);
     }
 
     private Timer timer = new Timer();
@@ -51,6 +63,17 @@ public class CallbackServiceImpl implements CallbackService {
     public void addListener(String key, CallbackListener listener) {
         listeners.put(key, listener);
         //listener.receiveServerMsg(new Date().toString()); // send notification for change
-        listener.receiveServerMsg(System.getProperty("quota") + "," + (Runtime.getRuntime().freeMemory()>>20));
+        String quota = System.getProperty("quota");
+        int port = 0;
+        if("small".equals(quota)) {
+            port = 20880;
+        }else if("medium".equals(quota)) {
+            port = 20870;
+        }else {
+            port = 20890;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(quota).append(",").append((Runtime.getRuntime().freeMemory()>>20)).append(",").append(TestServerFilter.statis.get(port).get());
+        listener.receiveServerMsg(sb.toString());
     }
 }

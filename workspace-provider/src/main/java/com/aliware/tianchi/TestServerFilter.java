@@ -9,6 +9,7 @@ import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,13 +23,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Activate(group = Constants.PROVIDER)
 public class TestServerFilter implements Filter {
 
-    private List<Long> requests = new ArrayList<Long>(1000);
-    private long timeUnit = 0;//单位时间，纳秒
-    public static volatile long  maxConcurrency = 0;//单位时间内的最大并发量
-    public static volatile byte flag = 1;
+
     public static volatile AtomicInteger num0 = new AtomicInteger(0);
     public static volatile AtomicInteger num1 = new AtomicInteger(0);
-    public static long initMemory = 0;
+
+    public static volatile HashMap<Integer,AtomicInteger> statis = new HashMap<>();
+
+    static {
+        statis.put(20880,new AtomicInteger(0));
+        statis.put(20870,new AtomicInteger(0));
+        statis.put(20890,new AtomicInteger(0));
+    }
 
 
 
@@ -37,6 +42,7 @@ public class TestServerFilter implements Filter {
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         try{
 
+            statis.get(invoker.getUrl().getPort()).incrementAndGet();
            // long start = System.nanoTime();
             Result result = invoker.invoke(invocation);
 
@@ -49,7 +55,6 @@ public class TestServerFilter implements Filter {
             }*/
             return result;
         }catch (Exception e){
-            System.out.println("ServerFilter:"+e);
             throw e;
         }
 
@@ -57,6 +62,7 @@ public class TestServerFilter implements Filter {
 
     @Override
     public Result onResponse(Result result, Invoker<?> invoker, Invocation invocation) {
+        statis.get(invoker.getUrl().getPort()).decrementAndGet();
         if(result.hasException()) {
             System.out.println("server:"+result.getException().toString());
         }

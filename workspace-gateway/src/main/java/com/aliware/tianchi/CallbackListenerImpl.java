@@ -44,21 +44,30 @@ public class CallbackListenerImpl implements CallbackListener {
     public void receiveServerMsg(String msg) {
         String msgs [] = msg.split(",");
         long time = System.nanoTime();
-       // System.out.println(msg);
+        System.out.println(msg);
        if("small".equals(msgs[0])) {
-            smallMemorySize = Integer.parseInt(msgs[1]);
+            //smallMemorySize = Integer.parseInt(msgs[1]);
+           smallMemorySize = 200-Integer.parseInt(msgs[2]);
+           UserLoadBalance.statis.get(20880).set(0);
+           UserLoadBalance.statisStartTime.put(20880,time);
             /*if(lowestSmallMemorySize==null) {
                 initSmallMemorySize = Math.max(initSmallMemorySize,smallMemorySize);
                 smallList.add(new MemoryNode(time,smallMemorySize));
             }*/
         }else if("medium".equals(msgs[0])){
-            mediumMemorySize = Integer.parseInt(msgs[1]);
+            //mediumMemorySize = Integer.parseInt(msgs[1]);
+            mediumMemorySize = 450-Integer.parseInt(msgs[2]);
+           UserLoadBalance.statis.get(20870).set(0);
+           UserLoadBalance.statisStartTime.put(20870,time);
           /* if(lowestMediumMemorySize==null) {
                initMediumMemorySize = Math.max(initMediumMemorySize,mediumMemorySize);
                mediumList.add(new MemoryNode(time,mediumMemorySize));
            }*/
         }else if("large".equals(msgs[0])) {
-            largeMemorySize = Integer.parseInt(msgs[1]);
+            //largeMemorySize = Integer.parseInt(msgs[1]);
+            largeMemorySize = 650-Integer.parseInt(msgs[2]);
+           UserLoadBalance.statis.get(20890).set(0);
+           UserLoadBalance.statisStartTime.put(20890,time);
           /* if(lowestLargeMemorySize==null) {
                initLargeMemorySize = Math.max(initLargeMemorySize,largeMemorySize);
                largeList.add(new MemoryNode(time,largeMemorySize));

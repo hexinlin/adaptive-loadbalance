@@ -26,13 +26,16 @@ public class TestClientFilter implements Filter {
     public static HashMap<Integer,AtomicInteger[]> beforeMap = new HashMap<>();
     public static HashMap<Integer,AtomicInteger[]> afterMap = new HashMap<>();
     static {
-        beforeMap.put(20880,new AtomicInteger[4]);
-        beforeMap.put(20870,new AtomicInteger[8]);
-        beforeMap.put(20890,new AtomicInteger[12]);
+        beforeMap.put(20880,new AtomicInteger[]{new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0)});
+        beforeMap.put(20870,new AtomicInteger[]{new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0)});
+        beforeMap.put(20890,new AtomicInteger[]{new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0)});
 
-        afterMap.put(20880,new AtomicInteger[4]);
-        afterMap.put(20870,new AtomicInteger[8]);
-        afterMap.put(20890,new AtomicInteger[12]);
+        afterMap.put(20880,new AtomicInteger[]{new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0)});
+        afterMap.put(20870,new AtomicInteger[]{new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0)});
+        afterMap.put(20890,new AtomicInteger[]{new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0),new AtomicInteger(0)});
+
+
+
     }
 
 
